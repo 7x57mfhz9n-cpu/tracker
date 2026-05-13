@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DJ Daily Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e;
+    --accent: #ff3c00; --accent2: #ff8c00;
+    --text: #f0f0f0; --text-dim: #666; --green: #00e87a; --border: #2a2a2a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-bottom: 60px; }
+
+  /* HEADER */
+  header { padding: 24px 20px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; letter-spacing: 2px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+  .date-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .day-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 0.78rem; font-weight: 600; color: var(--accent2); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .progress-bar-wrap { margin-top: 12px; height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+  .progress-label { font-size: 0.7rem; color: var(--text-dim); margin-top: 5px; }
+
+  /* NAV */
+  .nav-tabs { display: flex; margin: 16px 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; gap: 4px; }
+  .nav-tab { flex: 1; padding: 9px 4px; border-radius: 9px; border: none; background: transparent; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+  .nav-tab.active { background: var(--accent); color: white; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* OGGI */
+  .serata-toggle { margin: 16px 16px 0; display: flex; gap: 8px; }
+  .toggle-btn { flex: 1; padding: 11px 4px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+  .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+  .streak-bar { margin: 14px 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .streak-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--accent2); line-height: 1; }
+  .streak-label { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+
+  .recovery-banner { margin: 14px 16px 0; background: linear-gradient(135deg, #1a0a00, #200f00); border: 1px solid #3a1a00; border-radius: 14px; padding: 14px 16px; }
+  .recovery-title { font-family: 'Bebas Neue', sans-serif; font-size: 0.9rem; letter-spacing: 1.5px; color: var(--accent2); margin-bottom: 6px; }
+  .recovery-item { font-size: 0.8rem; color: #cc7a00; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+
+  .section { margin: 18px 16px 0; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; padding-left: 4px; }
+  .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden; }
+  .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--accent), var(--accent2)); opacity: 0; transition: opacity 0.2s; }
+  .task-card.done { opacity: 0.5; border-color: transparent; }
+  .task-card.done::before { opacity: 1; background: var(--green); }
+  .task-card:active { transform: scale(0.98); }
+  .check-circle { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s ease; font-size: 0.9rem; }
+  .task-card.done .check-circle { background: var(--green); border-color: var(--green); }
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-size: 0.95rem; font-weight: 500; line-height: 1.3; }
+  .task-card.done .task-name { text-decoration: line-through; color: var(--text-dim); }
+  .task-meta { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+  .task-emoji { font-size: 1.3rem; flex-shrink: 0; }
+
+  .bottom-btns { margin: 20px 16px 0; display: flex; gap: 8px; }
+  .action-btn { flex: 1; padding: 13px 8px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+  .action-btn:active { background: var(--surface2); }
+  .action-btn.danger { color: var(--accent); border-color: #3a1a1a; }
+
+  /* SETTIMANA */
+  .week-header { margin: 16px 16px 0; }
+  .week-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 2px; color: var(--text); }
+  .week-subtitle { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+  .week-summary-card { margin: 14px 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .week-stats { display: flex; margin-bottom: 14px; }
+  .week-stat { flex: 1; text-align: center; border-right: 1px solid var(--border); }
+  .week-stat:last-child { border-right: none; }
+  .week-stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--accent2); line-height: 1; }
+  .week-stat-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+  .day-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .day-row:last-child { border-bottom: none; }
+  .day-row-name { font-size: 0.8rem; font-weight: 600; color: var(--text-dim); width: 36px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+  .day-row-name.today { color: var(--accent2); }
+  .day-dots { display: flex; gap: 5px; flex: 1; flex-wrap: wrap; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; }
+  .dot.done { background: var(--green); border-color: var(--green); }
+  .dot.missed { background: #3a1a1a; border-color: var(--accent); }
+  .day-pct { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); width: 34px; text-align: right; flex-shrink: 0; }
+  .day-pct.full { color: var(--green); }
+  .week-empty { text-align: center; padding: 30px 20px; color: var(--text-dim); font-size: 0.85rem; }
+
+  /* SALVA */
+  .save-section { margin: 16px 16px 0; }
+  .save-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+  .save-card-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 1.5px; color: var(--accent2); margin-bottom: 6px; }
+  .save-card-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; }
+  .save-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
+  .save-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+  .save-btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+  .save-btn:active { opacity: 0.85; }
+  .import-area { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; min-height: 80px; resize: vertical; margin-bottom: 10px; display: block; }
+  .import-area::placeholder { color: var(--text-dim); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--green); color: #000; padding: 10px 22px; border-radius: 30px; font-size: 0.82rem; font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 9999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--accent); color: white; }
+
+  /* CONFETTI */
+  .particle { position: fixed; width: 8px; height: 8px; border-radius: 2px; animation: fall 1.2s ease-in forwards; pointer-events: none; z-index: 9999; }
+  @keyframes fall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>DJ TRACKER</h1>
+      <div class="date-label" id="dateLabel"></div>
+    </div>
+    <div class="day-badge" id="dayBadge"></div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="progress-label" id="progressLabel">0 / 0 completate</div>
+</header>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showView('oggi')">📋 Oggi</button>
+  <button class="nav-tab" onclick="showView('settimana')">📊 Settimana</button>
+  <button class="nav-tab" onclick="showView('salva')">💾 Salva</button>
+</div>
+
+<!-- OGGI -->
+<div class="view active" id="view-oggi">
+  <div class="serata-toggle">
+    <button class="toggle-btn active" id="btnNormale" onclick="setGiornata('normale')">Normale</button>
+    <button class="toggle-btn" id="btnSerata" onclick="setGiornata('serata')">Serata</button>
+    <button class="toggle-btn" id="btnRecupero" onclick="setGiornata('recupero')">Recupero</button>
+  </div>
+  <div class="streak-bar">
+    <div class="streak-num" id="streakNum">0</div>
+    <div class="streak-label">giorni consecutivi<br>completati 🔥</div>
+  </div>
+  <div id="recoverySection"></div>
+  <div id="taskSections"></div>
+  <div class="bottom-btns">
+    <button class="action-btn danger" onclick="resetDay()">↺ Reset giornata</button>
+  </div>
+</div>
+
+<!-- SETTIMANA -->
+<div class="view" id="view-settimana">
+  <div class="week-header">
+    <div class="week-title">Riepilogo Settimana</div>
+    <div class="week-subtitle" id="weekRange"></div>
+  </div>
+  <div id="weekContent"></div>
+</div>
+
+<!-- SALVA -->
+<div class="view" id="view-salva">
+  <div class="save-section">
+    <div class="save-card">
+      <div class="save-card-title">📤 Esporta dati</div>
+      <div class="save-card-desc">Scarica un file JSON con tutti i tuoi dati: task completate, streak e storico. Salvalo su iCloud o Google Drive come backup.</div>
+      <button class="save-btn primary" onclick="exportData()">Scarica backup (.json)</button>
+    </div>
+    <div class="save-card">
+      <div class="save-card-title">📥 Importa dati</div>
+      <div class="save-card-desc">Ripristina un backup. Incolla qui il contenuto del file JSON, oppure seleziona il file direttamente.</div>
+      <textarea class="import-area" id="importArea" placeholder="Incolla qui il JSON del backup..."></textarea>
+      <button class="save-btn primary" onclick="importFromText()">Ripristina da testo</button>
+      <button class="save-btn secondary" onclick="document.getElementById('fileInput').click()">Seleziona file .json</button>
+      <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importFromFile(event)">
+    </div>
+    <div class="save-card">
+      <div class="save-card-title">⚠️ Reset completo</div>
+      <div class="save-card-desc">Cancella tutti i dati e ricomincia da zero. Non reversibile.</div>
+      <button class="save-btn secondary" style="color:var(--accent);border-color:#3a1a1a;" onclick="hardReset()">Cancella tutti i dati</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TASKS = {
+  normale: [
+    { id: 'sveglia', emoji: '☀️', name: 'Sveglia + colazione senza telefono', meta: '20 min', section: 'Mattina' },
+    { id: 'ricerca', emoji: '🎵', name: 'Ricerca musicale con obiettivo preciso', meta: '1 ora', section: 'Mattina' },
+    { id: 'pranzo', emoji: '🍽️', name: 'Pranzo', meta: '', section: 'Early Afternoon' },
+    { id: 'palestra', emoji: '💪', name: 'Palestra', meta: '1 ora circa', section: 'Early Afternoon' },
+    { id: 'ableton', emoji: '🎹', name: 'Sessione Ableton (obiettivo micro prefissato)', meta: '1.5–2 ore', section: 'Pomeriggio' },
+    { id: 'ascolto', emoji: '🎧', name: 'Ascolto libero / ispirazione', meta: 'Senza pressione', section: 'Sera' },
+  ],
+  serata: [
+    { id: 'sveglia', emoji: '☀️', name: 'Sveglia + colazione senza telefono', meta: '20 min', section: 'Mattina' },
+    { id: 'ableton', emoji: '🎹', name: 'Sessione Ableton (breve, obiettivo micro)', meta: '45 min', section: 'Mattina' },
+    { id: 'pranzo', emoji: '🍽️', name: 'Pranzo', meta: '', section: 'Pomeriggio' },
+    { id: 'prep', emoji: '🎛️', name: 'Prep serata (checklist attrezzatura)', meta: '30 min', section: 'Pomeriggio' },
+    { id: 'serata', emoji: '🔊', name: 'SERATA', meta: 'Soundcheck + live', section: 'Sera' },
+  ],
+  recupero: [
+    { id: 'riposo', emoji: '😴', name: 'Recupero — nessuna pressione', meta: 'Priorità assoluta', section: 'Mattina' },
+    { id: 'cibo', emoji: '🍽️', name: 'Mangia bene, idratati', meta: '', section: 'Mattina' },
+    { id: 'ableton', emoji: '🎹', name: 'Ableton leggero (solo se ti va)', meta: '30 min max', section: 'Pomeriggio' },
+    { id: 'piano', emoji: '📋', name: 'Pianifica la settimana (15 min)', meta: 'Cosa hai mancato?', section: 'Sera' },
+  ]
+};
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function defaultState() { return { date: today(), giornata: 'normale', done: {}, streak: 0, missed: [], history: {} }; }
+
+let state = JSON.parse(localStorage.getItem('djtracker') || 'null') || defaultState();
+if (!state.history) state.history = {};
+
+if (state.date !== today()) {
+  const prevTasks = TASKS[state.giornata] || TASKS.normale;
+  const wasComplete = prevTasks.every(t => state.done[t.id]);
+  state.history[state.date] = {
+    giornata: state.giornata, done: { ...state.done },
+    total: prevTasks.length, completed: prevTasks.filter(t => state.done[t.id]).length,
+  };
+  const keys = Object.keys(state.history).sort();
+  if (keys.length > 60) delete state.history[keys[0]];
+  state.missed = prevTasks.filter(t => !state.done[t.id]).map(t => t.name);
+  state.streak = wasComplete ? state.streak + 1 : 0;
+  state.date = today(); state.giornata = 'normale'; state.done = {};
+  save();
+}
+
+function save() { localStorage.setItem('djtracker', JSON.stringify(state)); }
+
+// NAV
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab')[['oggi','settimana','salva'].indexOf(name)].classList.add('active');
+  if (name === 'settimana') renderWeek();
+}
+
+// OGGI
+function setGiornata(tipo) {
+  if (tipo === state.giornata) return;
+  if (!confirm('Cambiare tipo di giornata resetterà le spunte di oggi. Continuare?')) return;
+  state.giornata = tipo; state.done = {}; save(); render();
+}
+
+function toggleTask(id) {
+  state.done[id] = !state.done[id]; save();
+  if (state.done[id]) triggerConfetti();
+  const tasks = TASKS[state.giornata];
+  const allDone = tasks.every(t => state.done[t.id]);
+  render();
+  if (allDone) { state.streak++; save(); setTimeout(() => { bigConfetti(); render(); }, 300); }
+}
+
+function resetDay() {
+  if (!confirm('Resettare tutte le task di oggi?')) return;
+  state.done = {}; save(); render();
+}
+
+function render() {
+  const now = new Date();
+  const days = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  document.getElementById('dateLabel').textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('dayBadge').textContent = days[now.getDay()];
+  ['normale','serata','recupero'].forEach(t => {
+    document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', state.giornata === t);
+  });
+  document.getElementById('streakNum').textContent = state.streak;
+  const tasks = TASKS[state.giornata];
+  const doneCount = tasks.filter(t => state.done[t.id]).length;
+  const pct = tasks.length ? Math.round(doneCount / tasks.length * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${doneCount} / ${tasks.length} completate`;
+
+  const recDiv = document.getElementById('recoverySection');
+  if (state.missed && state.missed.length) {
+    recDiv.innerHTML = `<div class="recovery-banner"><div class="recovery-title">⚡ Non completato ieri</div>${state.missed.map(m => `<div class="recovery-item">→ ${m}</div>`).join('')}</div>`;
+  } else recDiv.innerHTML = '';
+
+  const sections = {};
+  tasks.forEach(t => { if (!sections[t.section]) sections[t.section] = []; sections[t.section].push(t); });
+  const container = document.getElementById('taskSections');
+  container.innerHTML = '';
+  Object.entries(sections).forEach(([sec, items]) => {
+    const secDiv = document.createElement('div');
+    secDiv.className = 'section';
+    secDiv.innerHTML = `<div class="section-title">${sec}</div>`;
+    items.forEach(task => {
+      const isDone = !!state.done[task.id];
+      const card = document.createElement('div');
+      card.className = 'task-card' + (isDone ? ' done' : '');
+      card.onclick = () => toggleTask(task.id);
+      card.innerHTML = `<div class="task-emoji">${task.emoji}</div><div class="task-info"><div class="task-name">${task.name}</div>${task.meta ? `<div class="task-meta">${task.meta}</div>` : ''}</div><div class="check-circle">${isDone ? '✓' : ''}</div>`;
+      secDiv.appendChild(card);
+    });
+    container.appendChild(secDiv);
+  });
+}
+
+// SETTIMANA
+function getWeekDates() {
+  const now = new Date();
+  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  return Array.from({length:7}, (_,i) => { const d = new Date(mon); d.setDate(mon.getDate()+i); return d.toISOString().split('T')[0]; });
+}
+
+function renderWeek() {
+  const weekDates = getWeekDates();
+  const dayNames = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const todayStr = today();
+
+  const first = new Date(weekDates[0]), last = new Date(weekDates[6]);
+  document.getElementById('weekRange').textContent = `${first.getDate()} ${months[first.getMonth()]} – ${last.getDate()} ${months[last.getMonth()]}`;
+
+  const allData = { ...state.history };
+  const todayTasks = TASKS[state.giornata];
+  allData[todayStr] = { giornata: state.giornata, done: {...state.done}, total: todayTasks.length, completed: todayTasks.filter(t => state.done[t.id]).length };
+
+  let completedDays = 0, activeDays = 0, totalTasks = 0, completedTasks = 0;
+  weekDates.forEach(d => {
+    if (allData[d] && d <= todayStr) {
+      activeDays++;
+      if (allData[d].completed === allData[d].total && allData[d].total > 0) completedDays++;
+      totalTasks += allData[d].total;
+      completedTasks += allData[d].completed;
+    }
+  });
+
+  const hasAny = weekDates.some(d => allData[d] && d <= todayStr);
+  let html = `<div class="week-summary-card">`;
+
+  if (hasAny) {
+    html += `<div class="week-stats">
+      <div class="week-stat"><div class="week-stat-num">${completedDays}/${activeDays}</div><div class="week-stat-label">Giorni OK</div></div>
+      <div class="week-stat"><div class="week-stat-num">${totalTasks ? Math.round(completedTasks/totalTasks*100) : 0}%</div><div class="week-stat-label">Task fatte</div></div>
+      <div class="week-stat"><div class="week-stat-num">${state.streak}</div><div class="week-stat-label">Streak 🔥</div></div>
+    </div>`;
+
+    weekDates.forEach((d, i) => {
+      const data = allData[d];
+      const isToday = d === todayStr;
+      const isFuture = d > todayStr;
+      let dotsHtml = '', pctHtml = '';
+
+      if (data && !isFuture) {
+        const tasks = TASKS[data.giornata] || TASKS.normale;
+        tasks.forEach(t => { dotsHtml += `<div class="dot ${data.done[t.id] ? 'done' : 'missed'}"></div>`; });
+        const pct = data.total ? Math.round(data.completed/data.total*100) : 0;
+        pctHtml = `<div class="day-pct ${pct===100?'full':''}">${pct}%</div>`;
+      } else {
+        for (let x=0;x<5;x++) dotsHtml += `<div class="dot ${isFuture?'':'missed'}"></div>`;
+        pctHtml = `<div class="day-pct">${isFuture?'—':'0%'}</div>`;
+      }
+
+      html += `<div class="day-row"><div class="day-row-name ${isToday?'today':''}">${dayNames[i]}</div><div class="day-dots">${dotsHtml}</div>${pctHtml}</div>`;
+    });
+  } else {
+    html += `<div class="week-empty">Nessun dato ancora.<br>Inizia a spuntare le task di oggi! 🎹</div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('weekContent').innerHTML = html;
+}
+
+// SALVATAGGIO
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  a.download = `djtracker-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ Backup scaricato!');
+}
+
+function importFromText() {
+  const text = document.getElementById('importArea').value.trim();
+  if (!text) { showToast('Incolla prima il JSON', true); return; }
+  try {
+    const imported = JSON.parse(text);
+    if (!imported.date) throw new Error();
+    Object.assign(state, imported);
+    if (!state.history) state.history = {};
+    save(); render();
+    document.getElementById('importArea').value = '';
+    showToast('✓ Dati ripristinati!');
+  } catch { showToast('JSON non valido', true); }
+}
+
+function importFromFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (!imported.date) throw new Error();
+      Object.assign(state, imported);
+      if (!state.history) state.history = {};
+      save(); render();
+      showToast('✓ Dati ripristinati!');
+    } catch { showToast('Errore nel file', true); }
+  };
+  reader.readAsText(file); e.target.value = '';
+}
+
+function hardReset() {
+  if (!confirm('Sicuro? Tutti i dati verranno eliminati.')) return;
+  if (!confirm('Ultima conferma: cancellare tutto?')) return;
+  state = defaultState(); save(); render();
+  showToast('Reset completato');
+}
+
+// TOAST
+function showToast(msg, error=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (error?' error':'');
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// CONFETTI
+function triggerConfetti() {
+  const colors = ['#ff3c00','#ff8c00','#00e87a','#fff','#ffcc00'];
+  for (let i=0;i<12;i++) {
+    const p = document.createElement('div'); p.className = 'particle';
+    p.style.cssText = `left:${Math.random()*100}%;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*0.3}s;animation-duration:${0.8+Math.random()*0.6}s`;
+    document.body.appendChild(p); setTimeout(() => p.remove(), 1500);
+  }
+}
+function bigConfetti() { for (let i=0;i<60;i++) setTimeout(triggerConfetti, i*30); }
+
+render();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+  });
+}
+</script>
+</body>
+</html>
